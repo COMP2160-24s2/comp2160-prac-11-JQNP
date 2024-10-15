@@ -18,6 +18,7 @@ public class UIManager : MonoBehaviour
 #region UI Elements
     [SerializeField] private Transform crosshair;
     [SerializeField] private Transform target;
+    [SerializeField] private bool usingOldCamera = true;
     private Camera cam;
     public LayerMask wallLayer;
 #endregion 
@@ -79,6 +80,9 @@ public class UIManager : MonoBehaviour
     {
         MoveCrosshair();
         SelectTarget();
+        Vector2 crossPos = deltaAction.ReadValue<Vector2>();
+        crosshair.position = new Vector3(crossPos.x, crossPos.y, 0f);
+                
     }
 
     private void MoveCrosshair() 
@@ -87,8 +91,21 @@ public class UIManager : MonoBehaviour
         Ray ray = cam.ScreenPointToRay(mousePos);
         if(Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, wallLayer))
         {
-            Vector3 crosshairPos = hit.point;
-            crosshair.position = crosshairPos;
+            if(usingOldCamera)
+            {
+                Vector3 crosshairPos = hit.point;
+                crosshairPos.y = 0.5f; // Stop the marble from trying to path into the ground.
+                crosshair.position = crosshairPos;
+            }
+            else
+            {
+                // Rect screenBorder = new Rect(0, 0, Screen.width, Screen.height);
+                Vector3 crosshairPos = hit.point;
+                Mathf.Clamp(crosshairPos.x, 0, Screen.width/2);
+                Mathf.Clamp(crosshairPos.z, 0, Screen.height/2);
+                crosshairPos.y = 0.5f; // Stop the marble from trying to path into the ground.
+                crosshair.position = crosshairPos;
+            }
         }
         // FIXME: Move the crosshair position to the mouse position (in world coordinates)
         // crosshair.position = ...;
@@ -101,7 +118,7 @@ public class UIManager : MonoBehaviour
             // set the target position and invoke 
             target.gameObject.SetActive(true);
             target.position = crosshair.position;     
-            TargetSelected?.Invoke(target.position);       
+            TargetSelected?.Invoke(target.position);
         }
     }
 
